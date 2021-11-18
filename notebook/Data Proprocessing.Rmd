@@ -2,12 +2,10 @@
 title: "Data Processing"
 author: "Wahyu Setianto"
 date: "11/18/2021"
-output: html_document
+output: rmarkdown::github_document
 ---
 
-# Data Processing
-
-## Library
+## Load Library
 
 ```{r}
 library(readr)
@@ -17,9 +15,9 @@ library(tidyverse)
 ## Reading Datasets
 
 ```{r}
-data <- list.files("../data", pattern = "zip", full.names = TRUE) %>% 
-  lapply(read_csv) %>% 
-  bind_rows 
+data <- list.files("../data", pattern = "zip", full.names = TRUE) %>%
+  lapply(read_csv) %>%
+  bind_rows
 glimpse(data)
 ```
 
@@ -36,4 +34,3 @@ View dataset
 ```{r}
 head(data)
 ```
-
