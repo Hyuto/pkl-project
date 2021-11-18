@@ -1,0 +1,39 @@
+---
+title: "Data Processing"
+author: "Wahyu Setianto"
+date: "11/18/2021"
+output: html_document
+---
+
+# Data Processing
+
+## Library
+
+```{r}
+library(readr)
+library(tidyverse)
+```
+
+## Reading Datasets
+
+```{r}
+data <- list.files("../data", pattern = "zip", full.names = TRUE) %>% 
+  lapply(read_csv) %>% 
+  bind_rows 
+glimpse(data)
+```
+
+**Ubah tipe data**
+
+```{r}
+data$service <- as.factor(data$service)
+data$date <- as.Date(data$date, "%d/%m/%Y")
+glimpse(data)
+```
+
+View dataset
+
+```{r}
+head(data)
+```
+
