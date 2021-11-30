@@ -7,12 +7,18 @@ output: rmarkdown::github_document
 
 ## Load Library
 
-```{r}
-library(readr)
+Load library yang akan digunakan untuk mengolah data.
+
+```{r message=FALSE, warning=FALSE}
+library(textclean)
+library(katadasaR)
+library(tokenizers)
 library(tidyverse)
 ```
 
 ## Reading Datasets
+
+Membaca (loading) dataset yang akan digunakan ke dalam memmory. Karena data terdiri dari beberapa file dalam bentuk zip maka akan dilist nama file yang ber-ektensi `zip` pada folder data baru di read menggunakan fungsi `read_csv` dan semua data akan disatukan menggunakan fungsi `bind_rows`.
 
 ```{r}
 data <- list.files("../data", pattern = "zip", full.names = TRUE) %>%
@@ -23,14 +29,37 @@ glimpse(data)
 
 **Ubah tipe data**
 
+Mengubah tipe data pada tiap kolom yang dianggap tidak sesuai.
+
+```
+service : chr -> fct
+date    : chr -> date 
+```
+
 ```{r}
 data$service <- as.factor(data$service)
 data$date <- as.Date(data$date, "%d/%m/%Y")
 glimpse(data)
 ```
 
-View dataset
+**Set up text data**
 
 ```{r}
-head(data)
+tweets <- data$message
+head(tweets)
 ```
+
+## Cleanning
+
+```{r}
+tweets <- gsub( "\n"," ",tweets)
+tweets <- tweets %>% 
+  replace_emoji() %>% # replace emoji
+  replace_html() %>%  # replace html with blank 
+  replace_url() %>%   # replace URLs with blank
+  tolower() %>%
+  gsub("[[:punct:]]", " ", .) %>%
+  replace_white()
+```
+
+
