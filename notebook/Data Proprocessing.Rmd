@@ -10,6 +10,7 @@ output: rmarkdown::github_document
 Load library yang akan digunakan untuk mengolah data.
 
 ```{r message=FALSE, warning=FALSE}
+library(stringr)
 library(textclean)
 library(katadasaR)
 library(tokenizers)
@@ -23,11 +24,11 @@ Membaca (loading) dataset yang akan digunakan ke dalam memmory. Karena data terd
 ```{r}
 data <- list.files("../data", pattern = "zip", full.names = TRUE) %>%
   lapply(read_csv) %>%
-  bind_rows
+  bind_rows()
 glimpse(data)
 ```
 
-**Ubah tipe data**
+### Ubah tipe data
 
 Mengubah tipe data pada tiap kolom yang dianggap tidak sesuai.
 
@@ -42,24 +43,143 @@ data$date <- as.Date(data$date, "%d/%m/%Y")
 glimpse(data)
 ```
 
-**Set up text data**
+### Drop retweet & NA
+
+Menghapus retweet dan baris yang mengandung `NA` di dalam data.
 
 ```{r}
-tweets <- data$message
-head(tweets)
+data <- data[!str_detect(data$message, regex("RT", ignore_case = FALSE)),]
+data <- drop_na(data)
+glimpse(data)
 ```
 
-## Cleanning
+## Sampling Data
+
+Mereduksi jumlah data yang akan digunakan untuk penelitian. Hal ini ditujukan karena akan dilakukan `labeling` secara manual pada setiap tweet kedalam kategori `OCEAN`.
 
 ```{r}
-tweets <- gsub( "\n"," ",tweets)
-tweets <- tweets %>% 
-  replace_emoji() %>% # replace emoji
-  replace_html() %>%  # replace html with blank 
-  replace_url() %>%   # replace URLs with blank
-  tolower() %>%
-  gsub("[[:punct:]]", " ", .) %>%
-  replace_white()
+set.seed(2021)
+sample.data <- sample_n(data, 1500)
+glimpse(sample.data)
+```
+
+
+## Cleanning Text
+
+### 1. Mengganti Emoji & Menghapus HTML tag
+
+Mengganti emoji dengan kalimat dan Menghapus HTML tag yang ada di dalam suatu teks. 
+
+**Contoh**
+
+```{r}
+"Halo ❤️ <br> Lagi apanih?" %>%
+  replace_emoji() %>%
+  replace_html()
+```
+
+### 2. Menghapus URL dan Hashtag
+
+Menghapus url dan hastag yang terdapat di dalam teks.
+
+**contoh**
+
+```{r}
+"https://google.co.id adalah halaman awal google indonesia. #google #info" %>%
+  replace_url() %>%
+  replace_hash()
+```
+
+### 3. Mengganti kata slang
+
+Mengganti kata slang yang terdapat dalam tweet. Kata slang sangan umum untuk di gunakan di media sosial, untuk menangani hal ini maka kata slang perlu dibenarkan kedalam kata formal. Digunakan `colloquial-indonesian-lexicon.csv` dari [nasalsabila/kamus-alay](https://github.com/nasalsabila/kamus-alay) yang berisi daftar kata slang yang umum di gunakan di media sosial dan bentuk formalnya.
+
+```{r}
+lexicon <- read_csv("https://raw.githubusercontent.com/nasalsabila/kamus-alay/master/colloquial-indonesian-lexicon.csv")
+glimpse(lexicon)
+```
+
+**Contoh**
+
+```{r}
+"Budi adalah tmn dari dani yg suka makan di taman" %>%
+  replace_internet_slang(., slang = paste0("\\b", lexicon$slang, "\\b"),
+                         replacement = lexicon$formal, ignore.case = TRUE)
+```
+
+### 4. Stemming & Menghapus Stopwords
+
+Melakukan stemming dengan library `katadasaR` dan menghapus `stopwords` yang ada di dalam teks.
+
+**Indonesian Stopwords**
+
+List kata - kata yang termasuk stopwords di dalam bahasa indonesia. Didapatkan dari [aliakbars/bilp](https://github.com/aliakbars/bilp)
+
+```{r warning=FALSE}
+stopwords.id <- readLines("https://raw.githubusercontent.com/aliakbars/bilp/master/stoplist")
+head(stopwords.id)
+```
+
+**Stemming function**
+
+```{r}
+stemming <- function(x){
+  return(paste(lapply(x,katadasar),collapse = " "))
+}
+```
+
+**Contoh**
+
+```{r}
+"Menikmati acara tv dengan melihat jadwal yang tayang secara lengkap" %>%
+  tokenize_words(., stopwords = stopwords.id) %>%
+  lapply(., stemming) %>%
+  as.character()
+```
+
+### 5. Normalisasi Teks
+
+Menormalisasi teks dengan beberapa tahapan.
+
+1. undercase
+2. menghapus newline
+3. menghapus punctuation
+4. menghandle huruf yang berulang disuatu kata
+5. menghapus whitespace
+
+**Running all text cleaning**
+
+Running semua metode text cleaning pada sample dataset
+
+```{r}
+sample.data$message <- sample.data$message %>%
+  replace_emoji() %>% # replace emoji dengan kalimat
+  replace_html() %>% # menghapus kode
+  replace_url() %>% # menghapus url
+  replace_hash() %>% # menghapus hashtag
+  # menghapus slang
+  replace_internet_slang(.,
+    slang = paste0("\\b", lexicon$slang, "\\b"),
+    replacement = lexicon$formal, ignore.case = TRUE
+  ) %>%
+  tolower() %>% # mengubah menjadi huruf non-kapital
+  gsub("\\\\n", " ", .) %>% # mengganti newline dengan spasi
+  gsub("[[:punct:]]", " ", .) %>% # mengganti punctuation dengan spasi
+  replace_word_elongation() %>% # menghandle huruf yang berulang
+  # menghapus whitespace
+  replace_white() %>%
+  str_trim() %>%
+  # menghapus stopwords
+  tokenize_words(., stopwords = stopwords.id) %>%
+  # stemming
+  lapply(., stemming) %>%
+  as.character()
+
+head(sample.data$message)
+```
+
+```{r}
+write.csv(sample.data, "../data/clean-sample-data.csv", row.names = FALSE)
 ```
 
 
