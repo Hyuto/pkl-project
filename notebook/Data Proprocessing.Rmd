@@ -39,17 +39,17 @@ date    : chr -> date
 
 ```{r}
 data$service <- as.factor(data$service)
-data$date <- as.Date(data$date, "%d/%m/%Y")
+data$date <- as.Date(data$date, "%m/%d/%Y")
 glimpse(data)
 ```
 
-### Drop retweet & NA
+### Drop retweet, `blog`, dan `news`
 
-Menghapus retweet dan baris yang mengandung `NA` di dalam data.
+Menghapus retweet dan data yang diperoleh dari `blog` serta `news` di dalam data.
 
 ```{r}
 data <- data[!str_detect(data$message, regex("RT", ignore_case = FALSE)),]
-data <- drop_na(data)
+data <- data[((data$service != "blogs") & (data$service != "news")),]
 glimpse(data)
 ```
 
@@ -59,14 +59,15 @@ Mereduksi jumlah data yang akan digunakan untuk penelitian. Hal ini ditujukan ka
 
 ```{r}
 set.seed(2021)
-sample.data <- sample_n(data, 1500)
+sample.data <- sample_n(data, 2000)
 glimpse(sample.data)
 ```
 
-
 ## Cleanning Text
 
-### 1. Mengganti Emoji & Menghapus HTML tag
+Membersihkan data teks agar data menjadi siap olah.
+
+### Mengganti Emoji & Menghapus HTML tag
 
 Mengganti emoji dengan kalimat dan Menghapus HTML tag yang ada di dalam suatu teks. 
 
@@ -147,6 +148,16 @@ Menormalisasi teks dengan beberapa tahapan.
 4. menghandle huruf yang berulang disuatu kata
 5. menghapus whitespace
 
+```{r}
+"Halo    Lagi apanih?\n kebetulan gw lagi kosong bangettt nih..." %>%
+  tolower() %>%
+  gsub("\\\\n", " ", .) %>% 
+  gsub("[[:punct:]]", " ", .) %>% 
+  replace_word_elongation() %>%
+  replace_white() %>%
+  str_trim()
+```
+
 **Running all text cleaning**
 
 Running semua metode text cleaning pada sample dataset
@@ -157,29 +168,28 @@ sample.data$message <- sample.data$message %>%
   replace_html() %>% # menghapus kode
   replace_url() %>% # menghapus url
   replace_hash() %>% # menghapus hashtag
-  # menghapus slang
   replace_internet_slang(.,
     slang = paste0("\\b", lexicon$slang, "\\b"),
     replacement = lexicon$formal, ignore.case = TRUE
-  ) %>%
+  ) %>% # menghapus slang
   tolower() %>% # mengubah menjadi huruf non-kapital
   gsub("\\\\n", " ", .) %>% # mengganti newline dengan spasi
   gsub("[[:punct:]]", " ", .) %>% # mengganti punctuation dengan spasi
   replace_word_elongation() %>% # menghandle huruf yang berulang
-  # menghapus whitespace
-  replace_white() %>%
+  replace_white() %>% # menghapus whitespace
   str_trim() %>%
-  # menghapus stopwords
-  tokenize_words(., stopwords = stopwords.id) %>%
-  # stemming
-  lapply(., stemming) %>%
+  tokenize_words(., stopwords = stopwords.id) %>% # menghapus stopwords
+  lapply(., stemming) %>% # stemming
   as.character()
 
 head(sample.data$message)
 ```
 
+**Save New Data**
+
+Menyimpan data bersih yang telah disampling.
+
 ```{r}
-write.csv(sample.data, "../data/clean-sample-data.csv", row.names = FALSE)
+dir.create("../output", showWarnings = FALSE)
+write.csv(sample.data, "../output/clean-sample-data.csv", row.names = FALSE)
 ```
-
-
