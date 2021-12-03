@@ -1,0 +1,19 @@
+---
+title: "Visualization"
+author: "Wahyu Setianto"
+date: "12/2/2021"
+output: rmarkdown::github_document
+---
+
+## Load Library
+
+load library yang akan digunakan
+
+```{r}
+library(tm)
+library(tidyverse)
+```
+
+## Reading Datasets
+
+Membaca (loading) dataset yang akan digunakan ke dalam memmory. Karena data terdiri dari beberapa file dalam bentuk zip maka akan dilist nama file yang ber-ektensi `zip` pada folder data baru di read menggunakan fungsi `read_csv` dan semua data akan disatukan menggunakan fungsi `bind_rows`.
