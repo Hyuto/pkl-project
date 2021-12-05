@@ -19,12 +19,10 @@ library(tidyverse)
 
 ## Reading Datasets
 
-Membaca (loading) dataset yang akan digunakan ke dalam memmory. Karena data terdiri dari beberapa file dalam bentuk zip maka akan dilist nama file yang ber-ektensi `zip` pada folder data baru di read menggunakan fungsi `read_csv` dan semua data akan disatukan menggunakan fungsi `bind_rows`.
+Membaca (loading) dataset yang akan digunakan ke dalam memmory. Dataset yang digunakan adalah dataset hasil `Sampling` notebook yang telah dilakukan `labelling`.
 
 ```{r}
-data <- list.files("../data", pattern = "zip", full.names = TRUE) %>%
-  lapply(read_csv) %>%
-  bind_rows()
+data <- read_csv("../data/sample-data.csv")
 glimpse(data)
 ```
 
@@ -41,26 +39,6 @@ date    : chr -> date
 data$service <- as.factor(data$service)
 data$date <- as.Date(data$date, "%m/%d/%Y")
 glimpse(data)
-```
-
-### Drop retweet, `blog`, dan `news`
-
-Menghapus retweet dan data yang diperoleh dari `blog` serta `news` di dalam data.
-
-```{r}
-data <- data[!str_detect(data$message, regex("RT", ignore_case = FALSE)),]
-data <- data[((data$service != "blogs") & (data$service != "news")),]
-glimpse(data)
-```
-
-## Sampling Data
-
-Mereduksi jumlah data yang akan digunakan untuk penelitian. Hal ini ditujukan karena akan dilakukan `labeling` secara manual pada setiap tweet kedalam kategori `OCEAN`.
-
-```{r}
-set.seed(2021)
-sample.data <- sample_n(data, 2000)
-glimpse(sample.data)
 ```
 
 ## Cleanning Text
@@ -163,7 +141,7 @@ Menormalisasi teks dengan beberapa tahapan.
 Running semua metode text cleaning pada sample dataset
 
 ```{r}
-sample.data$message <- sample.data$message %>%
+data$message <- data$message %>%
   replace_emoji() %>% # replace emoji dengan kalimat
   replace_html() %>% # menghapus kode
   replace_url() %>% # menghapus url
@@ -182,7 +160,7 @@ sample.data$message <- sample.data$message %>%
   lapply(., stemming) %>% # stemming
   as.character()
 
-head(sample.data$message)
+head(data$message)
 ```
 
 **Save New Data**
@@ -191,5 +169,5 @@ Menyimpan data bersih yang telah disampling.
 
 ```{r}
 dir.create("../output", showWarnings = FALSE)
-write.csv(sample.data, "../output/clean-sample-data.csv", row.names = FALSE)
+write.csv(data, "../output/clean-sample-data.csv", row.names = FALSE)
 ```
