@@ -11,6 +11,7 @@ Indonesian Twitter dataset dengan topik PPKM bulan Juli - September 2021. Data t
 | 4   |  blogs  | 2021-03-08 | 21:50 | Dalam instruksi tersebut, untuk pemberlakuan PPKM p... |
 | 5   |  blogs  | 2021-03-08 | 21:10 | Sebelumnya penerapan PPKM Level 3 juga sudah dilaks... |
 | 6   |  blogs  | 2021-03-08 | 20:08 | Aturan PPKM Level 4 di Kota Bandung usai diperintah... |
+| ... |  ....   |    ...     |  ...  | ...                                                    |
 
 **Akses Tanpa Mendownload**
 
