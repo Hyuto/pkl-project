@@ -1,6 +1,7 @@
 #!/usr/bin/env Rscript
 # Script to do OCEAN analysis to text dataset based on keywords
 # Please install "optparse", "logger", "rjson", "stringr", and "readr" package before running
+# © Wahyu Setianto 2021
 
 # Load library
 suppressWarnings(library(optparse))
@@ -9,6 +10,7 @@ library(rjson)
 library(stringr)
 library(readr)
 
+# Set logging level
 log_threshold(DEBUG)
 
 # Function to find OCEAN based on Keywords
@@ -40,8 +42,10 @@ option_list <- list(
   )
 )
 
+# Parsing argument
 parser <- parse_args(OptionParser(option_list = option_list))
 
+# Main
 if (file.exists(parser$filename)) {
   # Read keywords
   log_info("Loading keywords...")
