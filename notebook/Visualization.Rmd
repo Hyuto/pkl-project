@@ -17,3 +17,39 @@ library(tidyverse)
 ## Reading Datasets
 
 Membaca (loading) dataset yang akan digunakan ke dalam memmory. Karena data terdiri dari beberapa file dalam bentuk zip maka akan dilist nama file yang ber-ektensi `zip` pada folder data baru di read menggunakan fungsi `read_csv` dan semua data akan disatukan menggunakan fungsi `bind_rows`.
+
+
+```{r}
+vcorpus <- Corpus(x = VectorSource(data$message))
+dtm <- DocumentTermMatrix(vcorpus)
+```
+
+```{r}
+temp.df <- tidy(dtm[data$label == "openness",])
+temp.df <- temp.df[order(-temp.df$count), c(2,3)]
+wordcloud2(temp.df, size=1, color = "random-dark", )
+```
+
+```{r}
+temp.df <- tidy(dtm[data$label == "extraversion",])
+temp.df <- temp.df[order(-temp.df$count), c(2,3)]
+wordcloud2(temp.df, size=1, color = "random-dark", )
+```
+
+```{r}
+temp.df <- tidy(dtm[data$label == "agreeableness",])
+temp.df <- temp.df[order(-temp.df$count), c(2,3)]
+wordcloud2(temp.df, size=1, color = "random-dark", )
+```
+
+```{r}
+temp.df <- tidy(dtm[data$label == "neuroticism",])
+temp.df <- temp.df[order(-temp.df$count), c(2,3)]
+wordcloud2(temp.df, size=1, color = "random-dark", )
+```
+
+```{r}
+temp.df <- tidy(dtm[data$label == "conscientiousness",])
+temp.df <- temp.df[order(-temp.df$count), c(2,3)]
+wordcloud2(temp.df, size=1, color = "random-dark", )
+```

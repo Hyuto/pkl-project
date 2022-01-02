@@ -1,8 +1,8 @@
 ---
-title: "Data Processing"
+title: "Main Notebook"
 author: "Wahyu Setianto"
 date: "11/18/2021"
-output: rmarkdown::github_document
+output: html_document
 ---
 
 ## Load Library
@@ -10,11 +10,16 @@ output: rmarkdown::github_document
 Load library yang akan digunakan untuk mengolah data.
 
 ```{r message=FALSE, warning=FALSE}
+library(tm)
 library(stringr)
 library(textclean)
 library(katadasaR)
 library(tokenizers)
 library(tidyverse)
+library(tidymodels)
+library(tidytext)
+library(textrecipes)
+library(wordcloud2)
 ```
 
 ## Reading Datasets
@@ -36,9 +41,33 @@ date    : chr -> date
 ```
 
 ```{r}
-data$service <- as.factor(data$service)
-data$date <- as.Date(data$date, "%m/%d/%Y")
+data <- data %>%
+  mutate(service = as.factor(service), 
+         date = as.Date(date, "%m/%d/%Y"),
+         label = as.factor(label))
 glimpse(data)
+```
+## Data Exploration
+
+Melakukan explorasi terhadap data dengan visualisasi
+
+**Social Media Platform**
+
+```{r}
+ggplot(data, aes(x = service, fill=service)) +
+  geom_bar(stat="count") +
+  ggtitle("Social Media Platform") +
+  theme_minimal()
+```
+
+**OCEAN Frequency**
+
+```{r}
+ggplot(data, aes(x = label, fill = label)) +
+  geom_bar(stat="count") +
+  coord_flip() +
+  ggtitle("Frekuensi Setiap Kelas") +
+  theme_minimal()
 ```
 
 ## Cleanning Text
@@ -57,16 +86,15 @@ Mengganti emoji dengan kalimat dan Menghapus HTML tag yang ada di dalam suatu te
   replace_html()
 ```
 
-### 2. Menghapus URL dan Hashtag
+### 2. Menghapus URL
 
-Menghapus url dan hastag yang terdapat di dalam teks.
+Menghapus url yang terdapat di dalam teks.
 
 **contoh**
 
 ```{r}
-"https://google.co.id adalah halaman awal google indonesia. #google #info" %>%
-  replace_url() %>%
-  replace_hash()
+"https://google.co.id adalah halaman awal google indonesia" %>%
+  replace_url()
 ```
 
 ### 3. Mengganti kata slang
@@ -145,7 +173,6 @@ data$message <- data$message %>%
   replace_emoji() %>% # replace emoji dengan kalimat
   replace_html() %>% # menghapus kode
   replace_url() %>% # menghapus url
-  replace_hash() %>% # menghapus hashtag
   replace_internet_slang(.,
     slang = paste0("\\b", lexicon$slang, "\\b"),
     replacement = lexicon$formal, ignore.case = TRUE
@@ -163,11 +190,103 @@ data$message <- data$message %>%
 head(data$message)
 ```
 
-**Save New Data**
+**Wordclouds**
 
-Menyimpan data bersih yang telah disampling.
+Membuat wordcloud untuk menlihat frekuensi sebaran kata dalam data.
 
 ```{r}
-dir.create("../output", showWarnings = FALSE)
-write.csv(data, "../output/clean-sample-data.csv", row.names = FALSE)
+vcorpus <- Corpus(x = VectorSource(data$message))
+temp.df <- tidy(DocumentTermMatrix(vcorpus))
+temp.df <- temp.df[order(-temp.df$count), c(2,3)]
+wordcloud2(temp.df, size=1, color = "random-dark", )
 ```
+
+## Modelling
+
+```{r}
+corpus <- subset(data, select = c("message", "label"))  %>%
+  mutate(Id = row_number())
+
+set.seed(2021)
+text_split <- initial_split(corpus, prop = 0.8)
+training_set <- training(text_split)
+test_set <- testing(text_split)
+```
+
+```{r}
+text_recipe <- recipe(label ~ ., data = training_set) %>% 
+  update_role(Id, new_role = "ID") %>% 
+  step_tokenize(message) %>% 
+  step_tfidf(message)
+```
+
+**logistic regression**
+
+```{r}
+log.reg <- logistic_reg(mode = "classification") %>%
+  set_engine("LiblineaR")
+log.reg.wf <- workflows::workflow() %>% 
+  add_recipe(text_recipe) %>% 
+  add_model(log.reg)
+
+log.reg.model <- fit(log.reg.wf, training_set)
+```
+
+**svm**
+
+```{r}
+svm <- svm_rbf("classification") %>% 
+  set_engine("kernlab")
+svm.wf <- workflows::workflow() %>% 
+  add_recipe(text_recipe) %>% 
+  add_model(svm)
+
+svm.model <- fit(svm.wf, training_set)
+```
+
+**naive bayes**
+
+```{r}
+nb <- discrim::naive_Bayes() %>% 
+  set_engine("naivebayes") %>% 
+  set_mode("classification")
+nb.wf <- workflows::workflow() %>% 
+  add_recipe(text_recipe) %>% 
+  add_model(nb)
+
+nb.model <- fit(nb.wf, training_set)
+```
+
+**Goodness of Fit**
+
+```{r}
+predictions_logreg <- predict(log.reg.model, test_set)
+predictions_svm <- predict(svm.model, test_set)
+predictions_nb <- predict(nb.model, test_set)
+
+logreg.acc <- bind_cols(test_set, predictions_logreg) %>% 
+  accuracy(truth = label, estimate = .pred_class)
+svm.acc <- bind_cols(test_set, predictions_svm) %>% 
+  accuracy(truth = label, estimate = .pred_class)
+nb.acc <- bind_cols(test_set, predictions_nb) %>% 
+  accuracy(truth = label, estimate = .pred_class)
+
+res <- data.frame(list("LogReg"=logreg.acc$.estimate[1],
+                       "SVM"=svm.acc$.estimate[1],
+                       "NB"=nb.acc$.estimate[1]))
+row.names(res) <- c("Accuracy")
+res
+```
+
+**Confussion Matrix**
+
+```{r}
+cm <- bind_cols(test_set, predictions_logreg) %>% 
+  conf_mat(truth = label, estimate = .pred_class)
+
+autoplot(cm, type = "heatmap") +
+  scale_fill_gradient(low="#D6EAF8", high = "#2E86C1") + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+```
+
+

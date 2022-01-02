@@ -3,6 +3,8 @@
 ![love](https://img.shields.io/badge/Made%20with-🖤-white)
 [![R](https://img.shields.io/badge/%20-R%204.0.4-blue?logo=R)](https://www.r-project.org/)
 
+![wordcloud](./assets/wordcloud.png)
+
 Source code dari laporan PKL dengan judul `OCEAN Analysis Opini Masyarakat Tentang Kebijakan PPKM Disosial Media Periode Juli - November 2021`.
 
 ## To Do's
