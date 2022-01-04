@@ -10,9 +10,9 @@ Source code dari laporan PKL dengan judul `OCEAN Analysis Opini Masyarakat Tenta
 ## To Do's
 
 1. Melakukan sedikit EDA ke data secara keseluruhan.
-2. Hand Labeling & Filtering Data.
-3. Membuat model untuk mengklasifikasikan data text.
-4. Membuat Wordcloud (?).
+2. Hand Labeling & Filtering Data. :white_check_mark:
+3. Membuat model untuk mengklasifikasikan data text. :white_check_mark:
+4. Membuat Wordcloud. :white_check_mark:
 
 ## [Dataset](./data)
 
@@ -45,6 +45,6 @@ Notebook yang digunakan untuk mengolah data.
 
   **Penggunaan**
 
-  ```
-  keywords-based-OCEAN.R -p <PATH-DATA>
+  ```bash
+  rscript keywords-based-OCEAN.R -p <PATH-DATA>
   ```

@@ -232,6 +232,11 @@ log.reg.wf <- workflows::workflow() %>%
 log.reg.model <- fit(log.reg.wf, training_set)
 ```
 
+```{r}
+dim(tidy(log.reg.model))
+```
+
+
 **svm**
 
 ```{r}
@@ -271,10 +276,8 @@ svm.acc <- bind_cols(test_set, predictions_svm) %>%
 nb.acc <- bind_cols(test_set, predictions_nb) %>% 
   accuracy(truth = label, estimate = .pred_class)
 
-res <- data.frame(list("LogReg"=logreg.acc$.estimate[1],
-                       "SVM"=svm.acc$.estimate[1],
-                       "NB"=nb.acc$.estimate[1]))
-row.names(res) <- c("Accuracy")
+res <- data.frame(list("Akurasi"=c(logreg.acc$.estimate[1], svm.acc$.estimate[1],nb.acc$.estimate[1])))
+row.names(res) <- c("Logistic Regression", "SVM", "Naive Bayes")
 res
 ```
 
