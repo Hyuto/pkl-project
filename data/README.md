@@ -13,13 +13,19 @@ Indonesian Twitter dataset dengan topik PPKM bulan Juli - September 2021. Data t
 | 6   |  blogs  | 2021-03-08 | 20:08 | Aturan PPKM Level 4 di Kota Bandung usai diperintah... |
 | ... |  ....   |    ...     |  ...  | ...                                                    |
 
-**Akses Tanpa Mendownload**
+## Labelled Dataset
+
+Data yang telah dilakukan filterisasi dan labelling secara manual menggunakan analisis OCEAN.
+
+[sample-data.csv](./sample-data.csv)
+
+## Akses Tanpa Mendownload
 
 Data dapat diakses langsung secara online dengan format link berikut:
 
 `https://raw.githubusercontent.com/Hyuto/pkl-project/master/data/<NAMA FILE>`
 
-|        |                                            Kode                                             | Library |
-| ------ | :-----------------------------------------------------------------------------------------: | :-----: |
-| Python | `pd.read_csv("https://raw.githubusercontent.com/Hyuto/pkl-project/master/data/Juli-1.zip")` | pandas  |
-| R      |  `read_csv("https://raw.githubusercontent.com/Hyuto/pkl-project/master/data/Juli-1.zip")`   |  readr  |
+|        |                                               Kode                                               | Library |
+| ------ | :----------------------------------------------------------------------------------------------: | :-----: |
+| Python | `pd.read_csv("https://raw.githubusercontent.com/Hyuto/pkl-project/master/data/sample-data.csv")` | pandas  |
+| R      |  `read_csv("https://raw.githubusercontent.com/Hyuto/pkl-project/master/data/sample-data.csv")`   |  readr  |
