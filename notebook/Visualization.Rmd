@@ -2,7 +2,7 @@
 title: "Visualization"
 author: "Wahyu Setianto"
 date: "12/2/2021"
-output: rmarkdown::github_document
+output: html_document
 ---
 
 ## Load Library

@@ -60,6 +60,12 @@ ggplot(data, aes(x = service, fill=service)) +
   theme_minimal()
 ```
 
+Insight:
+
+* Media sosial twitter memiliki frekuensi mention terbesar jauh mengungguli media social lainnya.
+* Media social youtube memiliki frekuensi mention terendah.
+* Pusat perbincangan terjadi pada media social twitter
+
 **OCEAN Frequency**
 
 ```{r}
@@ -69,6 +75,11 @@ ggplot(data, aes(x = label, fill = label)) +
   ggtitle("Frekuensi Setiap Kelas") +
   theme_minimal()
 ```
+
+Insight:
+
+* Kelas extraversion merupakan kelas dengan frekuensi terbanyak, menandakan mayoritas masyarakat memiliki sifat mampu bersosialisasi dan berinteraksi pada lingkungannya, tegas dalam mengambil keputusan, memiliki emosi positif, serta antusias terhadap dunia sosial dan material.
+* Kelas agreeableness memiliki frekuensi terendah.
 
 ## Cleanning Text
 
@@ -203,6 +214,12 @@ wordcloud2(temp.df, size=1, color = "random-dark", )
 
 ## Modelling
 
+Modelling terhadap data text
+
+**Splitting Data**
+
+Splitting data menjadi Data Latih & Data Test.
+
 ```{r}
 corpus <- subset(data, select = c("message", "label"))  %>%
   mutate(Id = row_number())
@@ -213,6 +230,10 @@ training_set <- training(text_split)
 test_set <- testing(text_split)
 ```
 
+**Pembobotan TF-IDF**
+
+Vectorization / Pembobotan menggunakan TF-IDF
+
 ```{r}
 text_recipe <- recipe(label ~ ., data = training_set) %>% 
   update_role(Id, new_role = "ID") %>% 
@@ -220,7 +241,9 @@ text_recipe <- recipe(label ~ ., data = training_set) %>%
   step_tfidf(message)
 ```
 
-**logistic regression**
+**Model Multinomial Logistic Regression**
+
+Fitting Multinomial Logistic Regression
 
 ```{r}
 log.reg <- logistic_reg(mode = "classification") %>%
@@ -232,12 +255,9 @@ log.reg.wf <- workflows::workflow() %>%
 log.reg.model <- fit(log.reg.wf, training_set)
 ```
 
-```{r}
-dim(tidy(log.reg.model))
-```
+**Model Support Vector Machine Classifier**
 
-
-**svm**
+Fitting Support Vector Machine Classifier
 
 ```{r}
 svm <- svm_rbf("classification") %>% 
@@ -249,7 +269,9 @@ svm.wf <- workflows::workflow() %>%
 svm.model <- fit(svm.wf, training_set)
 ```
 
-**naive bayes**
+**Model Naive Bayes**
+
+Fitting Naive Bayes
 
 ```{r}
 nb <- discrim::naive_Bayes() %>% 
@@ -262,7 +284,9 @@ nb.wf <- workflows::workflow() %>%
 nb.model <- fit(nb.wf, training_set)
 ```
 
-**Goodness of Fit**
+## Evaluasi Model
+
+Evaluasi terhadap model yang sudah fit.
 
 ```{r}
 predictions_logreg <- predict(log.reg.model, test_set)
@@ -277,11 +301,22 @@ nb.acc <- bind_cols(test_set, predictions_nb) %>%
   accuracy(truth = label, estimate = .pred_class)
 
 res <- data.frame(list("Akurasi"=c(logreg.acc$.estimate[1], svm.acc$.estimate[1],nb.acc$.estimate[1])))
-row.names(res) <- c("Logistic Regression", "SVM", "Naive Bayes")
+row.names(res) <- c("Multinomial Logistic Regression", 
+                    "Support Vector Machine", 
+                    "Naive Bayes")
 res
 ```
 
+Insight:
+
+* Dari hasil tersebut dapat dilihat bahwa Multinomial Logistic Regression memiliki nilai akurasi terbesar dibanding model lainnya. 
+* Model Naïve Bayes memiliki nilai akurasi terendah
+* Sehingga Multinomial Logistic Regression adalah dapat dipilih untuk melakukan pengklasifikasian. 
+
+
 **Confussion Matrix**
+
+Berikut adalah confusion matrix dari model Multinomial Logistic Regression
 
 ```{r}
 cm <- bind_cols(test_set, predictions_logreg) %>% 
@@ -292,4 +327,34 @@ autoplot(cm, type = "heatmap") +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 ```
 
+Insight:
 
+* Kelas extraversion adalah kelas yang paling dipahami oleh model karena memiliki truth rate terbesar, 
+* Sedangkan kelas openness dan agreeableness merupakan kelas yang kurang dipahami oleh model karena memiliki truth rate yang kecil dan banyak terjadi misclassification.
+
+**Most Frequent Word**
+
+Kata yang paling banyak muncul pada prediksi berdasarkan kelasnya
+
+```{r}
+test_set$pred <- predictions_logreg$.pred_class
+words <- c()
+for(kelas in levels(test_set$label)){
+  temp.df <- data_frame(Text = test_set$message[test_set$pred == kelas])
+  freq <- temp.df %>% 
+    unnest_tokens(output = word, input = Text) %>%
+    count(word, sort = TRUE) %>%
+    head(., 7)
+  words <- c(words, freq$word)
+}
+
+res.df <- as.data.frame(matrix(words, nrow=7))
+names(res.df) <- levels(test_set$label)
+res.df
+```
+
+## Kesimpulan
+
+* Metode yang didapat dalam mengklasifikasikan opini masyarakat terhadap PPKM kedalam OCEAN adalah Multinomial Logistic Regression.
+* Multinomial Logistic Regression memiliki tingkat akurasi terbesar dibandingkan dengan metode lainnya yaitu sebesar 0.4, Namun nilai tersebut masih jauh dari predikat baik dan masih dapat dikembangkan lagi.
+* Extraversion merupakan kelas dengan frekuensi terbanyak, menandakan mayoritas masyarakat memiliki sifat mampu bersosialisasi dan berinteraksi pada lingkungannya, tegas dalam mengambil keputusan, memiliki emosi positif, serta antusias terhadap dunia sosial dan material.

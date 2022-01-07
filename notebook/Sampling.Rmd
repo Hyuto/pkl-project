@@ -2,7 +2,7 @@
 title: "Sampling"
 author: "Wahyu Setianto"
 date: "12/5/2021"
-output: rmarkdown::github_document
+output: html_document
 ---
 
 ## Load Library
@@ -59,7 +59,7 @@ Mereduksi jumlah data yang akan digunakan untuk penelitian. Hal ini ditujukan ka
 
 ```{r}
 set.seed(2021)
-sample.data <- sample_n(data, 2000)
+sample.data <- sample_n(data, 3000)
 glimpse(sample.data)
 ```
 

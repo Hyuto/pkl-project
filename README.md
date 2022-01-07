@@ -9,6 +9,10 @@ Repository dari laporan PKL dengan judul
 
 > [Penerapan Machine Learning Terhadap Analisis OCEAN Mengenai Opini Masyarakat Mengenai PPKM di Media Sosial](./Penerapan%20Machine%20Learning%20Terhadap%20Analisis%20OCEAN%20Mengenai%20Opini%20Masyarakat%20Mengenai%20PPKM%20di%20Media%20Sosial.pdf)
 
+**workflow**
+
+![workflow](./assets/workflow.png)
+
 ## [Dataset](./data)
 
 Indonesian Twitter dataset dengan topik PPKM bulan Juli - September 2021. Data dapat diakses langsung secara online dengan format link berikut:
