@@ -7,28 +7,218 @@ output: html_document
 
 ## Load Library
 
-load library yang akan digunakan
+Load library yang akan digunakan untuk mengolah data.
 
-```{r}
+```{r message=FALSE, warning=FALSE}
 library(tm)
+library(stringr)
+library(textclean)
+library(katadasaR)
+library(tokenizers)
 library(tidyverse)
+library(tidymodels)
+library(tidytext)
+library(textrecipes)
+library(wordcloud2)
 ```
 
 ## Reading Datasets
 
-Membaca (loading) dataset yang akan digunakan ke dalam memmory. Karena data terdiri dari beberapa file dalam bentuk zip maka akan dilist nama file yang ber-ektensi `zip` pada folder data baru di read menggunakan fungsi `read_csv` dan semua data akan disatukan menggunakan fungsi `bind_rows`.
+Membaca (loading) dataset yang akan digunakan ke dalam memmory. Dataset yang digunakan adalah dataset hasil `Sampling` notebook yang telah dilakukan `labelling`.
 
+```{r}
+data <- read_csv("../data/sample-data.csv")
+glimpse(data)
+```
+
+### Ubah tipe data
+
+Mengubah tipe data pada tiap kolom yang dianggap tidak sesuai.
+
+```
+service : chr -> fct
+date    : chr -> date 
+```
+
+```{r}
+data <- data %>%
+  mutate(service = as.factor(service), 
+         date = as.Date(date, "%m/%d/%Y"),
+         label = as.factor(label))
+glimpse(data)
+```
+## Data Exploration
+
+Melakukan explorasi terhadap data dengan visualisasi
+
+**Social Media Platform**
+
+```{r}
+ggplot(data, aes(x = service, fill=service)) +
+  geom_bar(stat="count") +
+  ggtitle("Social Media Platform") +
+  theme_minimal()
+```
+
+Insight:
+
+* Media sosial twitter memiliki frekuensi mention terbesar jauh mengungguli media social lainnya.
+* Media social youtube memiliki frekuensi mention terendah.
+* Pusat perbincangan terjadi pada media social twitter
+
+**OCEAN Frequency**
+
+```{r}
+ggplot(data, aes(x = label, fill = label)) +
+  geom_bar(stat="count") +
+  coord_flip() +
+  ggtitle("Frekuensi Setiap Kelas") +
+  theme_minimal()
+```
+
+Insight:
+
+* Kelas extraversion merupakan kelas dengan frekuensi terbanyak, menandakan mayoritas masyarakat memiliki sifat mampu bersosialisasi dan berinteraksi pada lingkungannya, tegas dalam mengambil keputusan, memiliki emosi positif, serta antusias terhadap dunia sosial dan material.
+* Kelas agreeableness memiliki frekuensi terendah.
+
+## Cleanning Text
+
+Membersihkan data teks agar data menjadi siap olah.
+
+### Mengganti Emoji & Menghapus HTML tag
+
+Mengganti emoji dengan kalimat dan Menghapus HTML tag yang ada di dalam suatu teks. 
+
+**Contoh**
+
+```{r}
+"Halo ❤️ <br> Lagi apanih?" %>%
+  replace_emoji() %>%
+  replace_html()
+```
+
+### 2. Menghapus URL
+
+Menghapus url yang terdapat di dalam teks.
+
+**contoh**
+
+```{r}
+"https://google.co.id adalah halaman awal google indonesia" %>%
+  replace_url()
+```
+
+### 3. Mengganti kata slang
+
+Mengganti kata slang yang terdapat dalam tweet. Kata slang sangan umum untuk di gunakan di media sosial, untuk menangani hal ini maka kata slang perlu dibenarkan kedalam kata formal. Digunakan `colloquial-indonesian-lexicon.csv` dari [nasalsabila/kamus-alay](https://github.com/nasalsabila/kamus-alay) yang berisi daftar kata slang yang umum di gunakan di media sosial dan bentuk formalnya.
+
+```{r}
+lexicon <- read_csv("https://raw.githubusercontent.com/nasalsabila/kamus-alay/master/colloquial-indonesian-lexicon.csv")
+glimpse(lexicon)
+```
+
+**Contoh**
+
+```{r}
+"Budi adalah tmn dari dani yg suka makan di taman" %>%
+  replace_internet_slang(., slang = paste0("\\b", lexicon$slang, "\\b"),
+                         replacement = lexicon$formal, ignore.case = TRUE)
+```
+
+### 4. Stemming & Menghapus Stopwords
+
+Melakukan stemming dengan library `katadasaR` dan menghapus `stopwords` yang ada di dalam teks.
+
+**Indonesian Stopwords**
+
+List kata - kata yang termasuk stopwords di dalam bahasa indonesia. Didapatkan dari [aliakbars/bilp](https://github.com/aliakbars/bilp)
+
+```{r warning=FALSE}
+stopwords.id <- readLines("https://raw.githubusercontent.com/aliakbars/bilp/master/stoplist")
+head(stopwords.id)
+```
+
+**Stemming function**
+
+```{r}
+stemming <- function(x){
+  return(paste(lapply(x,katadasar),collapse = " "))
+}
+```
+
+**Contoh**
+
+```{r}
+"Menikmati acara tv dengan melihat jadwal yang tayang secara lengkap" %>%
+  tokenize_words(., stopwords = stopwords.id) %>%
+  lapply(., stemming) %>%
+  as.character()
+```
+
+### 5. Normalisasi Teks
+
+Menormalisasi teks dengan beberapa tahapan.
+
+1. undercase
+2. menghapus newline
+3. menghapus punctuation
+4. menghandle huruf yang berulang disuatu kata
+5. menghapus whitespace
+
+```{r}
+"Halo    Lagi apanih?\n kebetulan gw lagi kosong bangettt nih..." %>%
+  tolower() %>%
+  gsub("\\\\n", " ", .) %>% 
+  gsub("[[:punct:]]", " ", .) %>% 
+  replace_word_elongation() %>%
+  replace_white() %>%
+  str_trim()
+```
+
+**Running all text cleaning**
+
+Running semua metode text cleaning pada sample dataset
+
+```{r}
+data$message <- data$message %>%
+  replace_emoji() %>% # replace emoji dengan kalimat
+  replace_html() %>% # menghapus kode
+  replace_url() %>% # menghapus url
+  replace_internet_slang(.,
+    slang = paste0("\\b", lexicon$slang, "\\b"),
+    replacement = lexicon$formal, ignore.case = TRUE
+  ) %>% # menghapus slang
+  tolower() %>% # mengubah menjadi huruf non-kapital
+  gsub("\\\\n", " ", .) %>% # mengganti newline dengan spasi
+  gsub("[[:punct:]]", " ", .) %>% # mengganti punctuation dengan spasi
+  replace_word_elongation() %>% # menghandle huruf yang berulang
+  replace_white() %>% # menghapus whitespace
+  str_trim() %>%
+  tokenize_words(., stopwords = stopwords.id) %>% # menghapus stopwords
+  lapply(., stemming) %>% # stemming
+  as.character()
+
+head(data$message)
+```
+
+**Wordclouds**
+
+Membuat wordcloud untuk menlihat frekuensi sebaran kata dalam data.
 
 ```{r}
 vcorpus <- Corpus(x = VectorSource(data$message))
 dtm <- DocumentTermMatrix(vcorpus)
 ```
 
+**Openness**
+
 ```{r}
 temp.df <- tidy(dtm[data$label == "openness",])
 temp.df <- temp.df[order(-temp.df$count), c(2,3)]
 wordcloud2(temp.df, size=1, color = "random-dark", )
 ```
+
+**Extraversion**
 
 ```{r}
 temp.df <- tidy(dtm[data$label == "extraversion",])
@@ -42,11 +232,15 @@ temp.df <- temp.df[order(-temp.df$count), c(2,3)]
 wordcloud2(temp.df, size=1, color = "random-dark", )
 ```
 
+**Neuroticism**
+
 ```{r}
 temp.df <- tidy(dtm[data$label == "neuroticism",])
 temp.df <- temp.df[order(-temp.df$count), c(2,3)]
 wordcloud2(temp.df, size=1, color = "random-dark", )
 ```
+
+**Conscientiousness**
 
 ```{r}
 temp.df <- tidy(dtm[data$label == "conscientiousness",])
